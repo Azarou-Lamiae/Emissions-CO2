@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CO₂ Insights - Data Mining</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<header>
+    <h1>🌍 CO₂ Insights</h1>
+    <p>Analyse et prédiction des émissions de CO₂ par habitant</p>
+</header>
+
+
+<div class="container">
+
+    <!-- ================================================= -->
+    <!-- SÉLECTION -->
+    <!-- ================================================= -->
+
+    <div class="card">
+
+        <h2>🔎 Prédiction du CO₂</h2>
+
+        <div class="controls">
+
+            <div>
+                <label for="country">Pays</label>
+
+                <select id="country">
+
+                    <option value="">
+                        -- Sélectionner un pays --
+                    </option>
+
+                    {% for country in countries %}
+                        <option value="{{ country }}">
+                            {{ country }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+                <div class="country-count">
+                    {{ countries|length }} pays disponibles
+                </div>
+            </div>
+
+
+            <div>
+                <label for="year">Année</label>
+
+                <input
+                    type="number"
+                    id="year"
+                    value="2030"
+                    min="2000"
+                    max="2040"
+                >
+            </div>
+
+
+            <div style="display:flex;align-items:end;">
+                <button onclick="predictCO2()">
+                    🔮 Prédire
+                </button>
+            </div>
+
+        </div>
+
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- RÉSULTATS -->
+    <!-- ================================================= -->
+
+    <div id="results" class="results">
+
+        <!-- ================================================= -->
+        <!-- INFORMATIONS -->
+        <!-- ================================================= -->
+
+        <div class="card">
+
+            <h2>📊 Résultats</h2>
+
+            <div class="stats">
+
+                <div class="stat">
+                    <div class="stat-title">
+                        Pays
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="resultCountry"
+                    >
+                        -
+                    </div>
+                </div>
+
+
+                <div class="stat">
+                    <div class="stat-title">
+                        Année
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="resultYear"
+                    >
+                        -
+                    </div>
+                </div>
+
+
+                <div class="stat">
+                    <div class="stat-title">
+                        Modèle A
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelAPrediction"
+                    >
+                        -
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ================================================= -->
+        <!-- MODÈLE A -->
+        <!-- ================================================= -->
+
+        <div class="card">
+
+            <h2>🤖 Modèle A — Année uniquement</h2>
+
+            <p>
+                Modèle basé uniquement sur l'année pour
+                prédire les émissions de CO₂ par habitant.
+            </p>
+
+            <div class="stats">
+
+                <div class="stat">
+
+                    <div class="stat-title">
+                        Meilleur modèle
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelAName"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="stat-title">
+                        Dernière valeur
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelALastValue"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="stat-title">
+                        Évolution
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelAEvolution"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container">
+                <canvas id="chartA"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- ================================================= -->
+        <!-- MODÈLE B -->
+        <!-- ================================================= -->
+
+        <div class="card">
+
+            <h2>🧠 Modèle B — Random Forest multivarié</h2>
+
+            <p>
+                Le modèle utilise plusieurs variables :
+                année, population, PIB par habitant et
+                part des énergies fossiles.
+            </p>
+
+            <div class="stats">
+
+                <div class="stat">
+
+                    <div class="stat-title">
+                        Dernière année
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelBLastYear"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="stat-title">
+                        Dernière valeur
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="modelBLastValue"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <h3>Scénario</h3>
+
+            <p style="color: var(--muted); margin-top: -8px;">
+                Choisissez un scénario pour afficher sa projection.
+            </p>
+
+            <div
+                class="scenario-tabs"
+                id="scenarioTabs"
+                style="display: none;"
+            >
+                {% for s in scenarios %}
+                <button
+                    type="button"
+                    class="scenario-tab"
+                    data-scenario="{{ s }}"
+                    onclick="selectScenario('{{ s }}')"
+                >
+                    {{ s }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <div
+                class="scenario-grid"
+                id="scenarioContainer"
+            >
+            </div>
+
+
+            <div class="chart-container">
+                <canvas id="chartB"></canvas>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- COMPARAISON ENTRE PAYS -->
+    <!-- ================================================= -->
+
+    <div class="card">
+
+        <h2>🌐 Comparer plusieurs pays</h2>
+
+        <p style="color: var(--muted);">
+            Sélectionnez les pays à comparer, une année et un
+            scénario. La comparaison utilise le modèle
+            multivarié (scénario) quand il est disponible pour
+            un pays, sinon le modèle A.
+        </p>
+
+        <div class="controls">
+
+            <div>
+                <label for="compareSearch">
+                    Rechercher un pays
+                </label>
+
+                <input
+                    type="text"
+                    id="compareSearch"
+                    placeholder="Ex : Maroc, France, Chine..."
+                    oninput="filterCompareCountries()"
+                >
+            </div>
+
+            <div>
+                <label for="compareYear">Année</label>
+                <input
+                    type="number"
+                    id="compareYear"
+                    value="2030"
+                    min="2000"
+                    max="2040"
+                >
+            </div>
+
+            <div>
+                <label for="compareScenario">Scénario</label>
+                <select id="compareScenario">
+                    {% for s in scenarios %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 18px;">
+            <label>Pays disponibles ({{ countries|length }})</label>
+
+            <div class="country-checklist" id="compareChecklist">
+                {% for country in countries %}
+                <label data-name="{{ country|lower }}">
+                    <input
+                        type="checkbox"
+                        value="{{ country }}"
+                        onchange="updateCompareSelection()"
+                    >
+                    {{ country }}
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="chip-list" id="compareChips"></div>
+        </div>
+
+        <div style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <button
+                type="button"
+                style="width: auto; padding: 12px 24px;"
+                onclick="compareCountries()"
+            >
+                📊 Comparer
+            </button>
+
+            <button
+                type="button"
+                class="secondary"
+                style="width: auto; padding: 12px 24px;"
+                onclick="clearCompareSelection()"
+            >
+                Réinitialiser
+            </button>
+        </div>
+
+        <div id="compareError" class="error"></div>
+
+        <div id="compareResults" class="hidden" style="margin-top: 20px;">
+
+            <div class="chart-container" style="height: 380px;">
+                <canvas id="chartCompare"></canvas>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pays</th>
+                        <th>Prédiction (t/hab)</th>
+                        <th>Modèle utilisé</th>
+                    </tr>
+                </thead>
+                <tbody id="compareTableBody"></tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- PERFORMANCE MODÈLE B -->
+    <!-- ================================================= -->
+
+    <div class="card">
+
+        <h2>📈 Performance du modèle multivarié</h2>
+
+        <div class="stats">
+
+            <div class="stat">
+
+                <div class="stat-title">
+                    MAE
+                </div>
+
+                <div class="stat-value">
+                    {{ multi_metrics.MAE }}
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-title">
+                    RMSE
+                </div>
+
+                <div class="stat-value">
+                    {{ multi_metrics.RMSE }}
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-title">
+                    R²
+                </div>
+
+                <div class="stat-value">
+                    {{ multi_metrics.R2 }}
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-title">
+                    Nombre de pays
+                </div>
+
+                <div class="stat-value">
+                    {{ multi_metrics.n_countries }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- IMPORTANCE DES VARIABLES -->
+    <!-- ================================================= -->
+
+    <div class="card">
+
+        <h2>🎯 Importance des variables</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Variable</th>
+                    <th>Importance</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for item in feature_importance %}
+
+                <tr>
+
+                    <td>
+                        {{ item.variable }}
+                    </td>
+
+                    <td>
+                        {{ item.importance }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- MEILLEURS MODÈLES -->
+    <!-- ================================================= -->
+
+    <div class="card">
+
+        <h2>🏆 Meilleur modèle par pays</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Pays</th>
+                    <th>Modèle</th>
+                    <th>RMSE</th>
+                    <th>MAE</th>
+                    <th>MAPE</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for item in best_models %}
+
+                <tr>
+
+                    <td>
+                        {{ item.country }}
+                    </td>
+
+                    <td>
+                        {{ item.model }}
+                    </td>
+
+                    <td>
+                        {{ item.RMSE }}
+                    </td>
+
+                    <td>
+                        {{ item.MAE }}
+                    </td>
+
+                    <td>
+                        {{ item.MAPE }} %
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<footer>
+    Projet Data Mining — CO₂ Prediction
+</footer>
+
+
+<script>window.SCENARIOS = {{ scenarios|tojson }};</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

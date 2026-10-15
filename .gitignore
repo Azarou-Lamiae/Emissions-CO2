@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Données brutes (33 Mo) : à retélécharger, voir data/README.md
+# Retirez cette ligne pour versionner le fichier brut dans le dépôt.
+data/raw/owid-co2-data.csv
